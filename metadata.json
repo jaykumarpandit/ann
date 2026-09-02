@@ -1,0 +1,6 @@
+{
+  "name": "Ann",
+  "description": "Your personal, offline-first AI friend and companion who stores memories and reads authorized folder contents dynamically.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
