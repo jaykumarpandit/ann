@@ -1,6 +1,6 @@
 {
   "name": "Ann",
-  "description": "Your personal, offline-first AI friend and companion who stores memories and reads authorized folder contents dynamically.",
+  "description": "Your personal companion synced to your Google account with read-only Gmail suggestions, contacts dialing, smart mobile file locator, voice chat, and YouTube/music playback.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

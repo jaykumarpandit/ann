@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Ann</string>
+    <string name="ann_accessibility_label">Ann Agentic Assistant</string>
+    <string name="ann_accessibility_description">Lets Ann read active screen controls and tap, scroll, type, or navigate hands-free when you ask.</string>
 </resources>

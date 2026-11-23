@@ -1,0 +1,194 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Data-minimized user profile and preferences stored under users/{userId}.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Google user UID."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Preferred name Ann calls the user."
+        },
+        "birthday": {
+          "type": "string",
+          "description": "Optional birthday text."
+        },
+        "interests": {
+          "type": "string",
+          "description": "Optional hobbies and interests."
+        },
+        "goals": {
+          "type": "string",
+          "description": "Optional personal goals."
+        },
+        "likes": {
+          "type": "string",
+          "description": "Optional things the user likes."
+        },
+        "dislikes": {
+          "type": "string",
+          "description": "Optional things the user dislikes."
+        },
+        "customNotes": {
+          "type": "string",
+          "description": "Optional concise user notes for Ann."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["userId", "displayName", "createdAt", "updatedAt"]
+    },
+    "UserMemory": {
+      "title": "UserMemory",
+      "description": "Concise, user-controlled memory item synced for Ann.",
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "Concise synthesized fact (max 320 chars)."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["preference", "life_event", "goal", "person", "routine", "general"],
+          "description": "Memory category."
+        },
+        "importance": {
+          "type": "integer",
+          "description": "Priority score from 1 to 5."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["chat", "manual"],
+          "description": "Origin of the memory."
+        },
+        "pinned": {
+          "type": "boolean",
+          "description": "Whether the user pinned this memory."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["content", "category", "importance", "source", "pinned", "createdAt", "updatedAt"]
+    },
+    "ChatSession": {
+      "title": "ChatSession",
+      "description": "Conversational session metadata synced across devices.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Conversation title."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Optional concise topic summary."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether this session is currently active."
+        },
+        "clientUpdatedAt": {
+          "type": "integer",
+          "description": "Client epoch millis for ordering."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["title", "active", "clientUpdatedAt", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Individual chat message synced inside a user session.",
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["user", "model"],
+          "description": "Message sender role."
+        },
+        "content": {
+          "type": "string",
+          "description": "Message text content."
+        },
+        "attachmentName": {
+          "type": "string",
+          "description": "Optional attached file display name."
+        },
+        "attachmentType": {
+          "type": "string",
+          "enum": ["image", "file", "folder"],
+          "description": "Optional attached file kind."
+        },
+        "clientTimestamp": {
+          "type": "integer",
+          "description": "Client epoch millis for chronological sorting."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": ["role", "content", "clientTimestamp", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "User's data-minimized profile and preferences."
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": {
+        "$ref": "#/entities/UserMemory"
+      },
+      "description": "User-scoped long-term memories for Ann."
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": {
+        "$ref": "#/entities/ChatSession"
+      },
+      "description": "User-scoped chat sessions."
+    },
+    "/users/{userId}/sessions/{sessionId}/messages/{messageId}": {
+      "schema": {
+        "$ref": "#/entities/ChatMessage"
+      },
+      "description": "User-scoped chat messages within a session."
+    }
+  }
+}

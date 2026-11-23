@@ -1,0 +1,159 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.displayName is string && data.displayName.size() <= 80 &&
+             (!('birthday' in data) || (data.birthday is string && data.birthday.size() <= 40)) &&
+             (!('interests' in data) || (data.interests is string && data.interests.size() <= 300)) &&
+             (!('goals' in data) || (data.goals is string && data.goals.size() <= 300)) &&
+             (!('likes' in data) || (data.likes is string && data.likes.size() <= 300)) &&
+             (!('dislikes' in data) || (data.dislikes is string && data.dislikes.size() <= 300)) &&
+             (!('customNotes' in data) || (data.customNotes is string && data.customNotes.size() <= 500)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidUserMemory(data) {
+      return data.content is string && data.content.size() >= 1 && data.content.size() <= 320 &&
+             data.category is string && data.category in ['preference', 'life_event', 'goal', 'person', 'routine', 'general'] &&
+             data.importance is int && data.importance >= 1 && data.importance <= 5 &&
+             data.source is string && data.source in ['chat', 'manual'] &&
+             data.pinned is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChatSession(data) {
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             (!('summary' in data) || (data.summary is string && data.summary.size() <= 300)) &&
+             data.active is bool &&
+             data.clientUpdatedAt is int && data.clientUpdatedAt >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChatMessage(data) {
+      return data.role is string && data.role in ['user', 'model'] &&
+             data.content is string && data.content.size() <= 8000 &&
+             (!('attachmentName' in data) || (data.attachmentName is string && data.attachmentName.size() <= 160)) &&
+             (!('attachmentType' in data) || (data.attachmentType is string && data.attachmentType in ['image', 'file', 'folder'])) &&
+             data.clientTimestamp is int && data.clientTimestamp >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'birthday', 'interests', 'goals', 'likes', 'dislikes', 'customNotes', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'birthday', 'interests', 'goals', 'likes', 'dislikes', 'customNotes', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /memories/{memoryId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(memoryId);
+        allow list: if isOwner(userId) && isValidId(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(memoryId) &&
+                         incoming().keys().hasAll(['content', 'category', 'importance', 'source', 'pinned', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['content', 'category', 'importance', 'source', 'pinned', 'createdAt', 'updatedAt']) &&
+                         isValidUserMemory(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(memoryId) &&
+                         isValidUserMemory(incoming()) &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().source == existing().source &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['content', 'category', 'importance', 'pinned', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(memoryId);
+      }
+
+      match /sessions/{sessionId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(sessionId);
+        allow list: if isOwner(userId) && isValidId(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(sessionId) &&
+                         incoming().keys().hasAll(['title', 'active', 'clientUpdatedAt', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['title', 'summary', 'active', 'clientUpdatedAt', 'createdAt', 'updatedAt']) &&
+                         isValidChatSession(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(sessionId) &&
+                         isValidChatSession(incoming()) &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'summary', 'active', 'clientUpdatedAt', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(sessionId);
+
+        match /messages/{messageId} {
+          allow get: if isOwner(userId) && isValidId(userId) && isValidId(sessionId) && isValidId(messageId);
+          allow list: if isOwner(userId) && isValidId(userId) && isValidId(sessionId);
+
+          allow create: if isOwner(userId) &&
+                           isValidId(userId) &&
+                           isValidId(sessionId) &&
+                           isValidId(messageId) &&
+                           incoming().keys().hasAll(['role', 'content', 'clientTimestamp', 'createdAt', 'updatedAt']) &&
+                           incoming().keys().hasOnly(['role', 'content', 'attachmentName', 'attachmentType', 'clientTimestamp', 'createdAt', 'updatedAt']) &&
+                           isValidChatMessage(incoming());
+
+          allow update: if isOwner(userId) &&
+                           isValidId(userId) &&
+                           isValidId(sessionId) &&
+                           isValidId(messageId) &&
+                           isValidChatMessage(incoming()) &&
+                           incoming().createdAt == existing().createdAt &&
+                           incoming().role == existing().role &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['content', 'updatedAt']);
+
+          allow delete: if isOwner(userId) && isValidId(userId) && isValidId(sessionId) && isValidId(messageId);
+        }
+      }
+    }
+  }
+}
